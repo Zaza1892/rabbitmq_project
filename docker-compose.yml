@@ -1,0 +1,49 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  mock-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.mockapi
+    container_name: mock-api
+
+  postgres:
+    image: postgres:16-alpine
+    #  official Postgres image, version 16
+    container_name: postgres
+    environment:
+      POSTGRES_USER: appuser
+      #  username to log into Postgres with
+      POSTGRES_PASSWORD: apppassword
+      #  password for that user
+      POSTGRES_DB: device_lookups
+      #  name of the database that gets auto-created on startup
+    ports:
+      - "5432:5432"
+    
+    volumes:
+       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      # default Postgres port
+  consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: consumer
+    depends_on:
+      - rabbitmq
+      - mock-api
+      - postgres
+      # added postgres here too, so it starts before the consumer does
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      API_URL: http://mock-api:8000/lookup
+      DB_HOST: postgres
+      DB_NAME: device_lookups
+      DB_USER: appuser
+      DB_PASSWORD: apppassword
+      #  env vars so consumer.py knows how to connect to Postgres
