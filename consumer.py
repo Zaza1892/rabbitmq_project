@@ -16,7 +16,7 @@ DB_NAME = os.getenv("DB_NAME", "device_lookups")
 DB_USER = os.getenv("DB_USER", "appuser")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "apppassword")
 
-def save_to_db(message_id, device_id, tenant_ids):
+def save_to_db(message_id, device_id, tenant_ids,raw_payload):
     # this function opens a connection, inserts one row, then closes the connection
     conn = psycopg2.connect(
         host=DB_HOST,
@@ -28,9 +28,9 @@ def save_to_db(message_id, device_id, tenant_ids):
     cur = conn.cursor() # a "cursor" lets us execute SQL commands
 
     cur.execute(
-        "INSERT INTO device_lookups (message_id, device_id, tenant_ids, created_at) VALUES (%s, %s, %s, %s)",
+        "INSERT INTO device_lookups (message_id, device_id, tenant_ids, created_at,raw_payload) VALUES (%s,%s, %s, %s, %s)",
         # ^ %s are placeholders - psycopg2 safely inserts our actual values in place of them
-        (message_id, device_id, json.dumps(tenant_ids), datetime.utcnow())
+        (message_id, device_id, json.dumps(tenant_ids), datetime.utcnow(),json.dumps(raw_payload))
         # ^ json.dumps converts our python list into a JSON string, which JSONB can store
     )
 
@@ -55,7 +55,7 @@ def handle_messages(channel,method,properties,body): # this function runs each t
 
     print("Tenant lookup result:",result) #log what the api gave back
 
-    save_to_db(message_id, device_id, tenant_ids) #  save this record to postgres
+    save_to_db(message_id, device_id, tenant_ids,payload) #  save this record to postgres
     print("Saved to database.") # confirm it saved
 
     channel.basic_ack(delivery_tag=method.delivery_tag) # tell rabbitMQ , handled the message

@@ -1,13 +1,15 @@
 import pika #library to talk to RabbitMQ
 import json #converts python dictionaery into json text 
+import uuid
+
 
 connection = pika.BlockingConnection(pika.ConnectionParameters(host="localhost")) #connect to rabbitmq on this machine 
 channel = connection.channel() #open chanel to send messages on 
 
 channel.queue_declare(queue="device_events",durable=True) # make sure queue exists and is same name as consumer.py
 
-message ={"message_id": "msg-001", #fake id for this message
-          "device_id": "device-999" # the device id our consumer will read out
+message ={"message_id": str(uuid.uuid4().hex[:6]), #fake id for this message
+          "device_id":f"device-{uuid.uuid4().hex[:6]}" # the device id our consumer will read out
           }
 
 channel.basic_publish( 
