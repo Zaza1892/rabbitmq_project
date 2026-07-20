@@ -28,9 +28,9 @@ def save_to_db(message_id, device_id, tenant_ids,raw_payload):
     cur = conn.cursor() # a "cursor" lets us execute SQL commands
 
     cur.execute(
-        "INSERT INTO device_lookups (message_id, device_id, tenant_ids, created_at,raw_payload) VALUES (%s,%s, %s, %s, %s)",
-        # ^ %s are placeholders - psycopg2 safely inserts our actual values in place of them
-        (message_id, device_id, json.dumps(tenant_ids), datetime.utcnow(),json.dumps(raw_payload))
+        "INSERT INTO device_lookups (message_id, device_id, tenant_ids, created_at,raw_payload) VALUES (%s,%s, %s, %s, %s) ON CONFLICT (message_id) DO NOTHING",
+    #  if this message_id already exists in the table, skip it instead of throwing an error       
+      (message_id, device_id, json.dumps(tenant_ids), datetime.utcnow(),json.dumps(raw_payload))
         # ^ json.dumps converts our python list into a JSON string, which JSONB can store
     )
 
@@ -39,6 +39,8 @@ def save_to_db(message_id, device_id, tenant_ids,raw_payload):
     conn.close() # close the connection
 
 def handle_messages(channel,method,properties,body): # this function runs each time a messages arrives on the queue
+ try: 
+    
     payload=json.loads(body)#convert message bytes into a python dictionary
     print("Message recieved: ",payload)# print statement to see it worked
 
@@ -47,8 +49,10 @@ def handle_messages(channel,method,properties,body): # this function runs each t
 
     response=requests.post(  # call mock api over http
         API_URL, # mock apis address and route
-        json={"device_id":device_id} # send device_id as the request body
+        json={"device_id": device_id},  # send device_id as the request body
+        timeout=5 # set a time so that it does not hang foreber
     )
+    response.raise_for_status()#an excpetion gets raised instead of it contuinuing silentyl
 
     result=response.json()# convert apis json response into a python dictiornary
     tenant_ids = result["tenants"] # pull just the tenant_ids list out of the api response
@@ -61,7 +65,16 @@ def handle_messages(channel,method,properties,body): # this function runs each t
     channel.basic_ack(delivery_tag=method.delivery_tag) # tell rabbitMQ , handled the message
 
 
+ except (json.JSONDecodeError, KeyError) as e:
+        #  message itself is bad JSON, or missing a required field , retrying won't ever fix this, so scrap it 
+        print(f"Bad message,: {e}. Body: {body}")
+        channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
 
+ except Exception as e:
+        #  issues like API down, database down, unexpected errors , will requeue and let rabbitmq retry 
+        print(f"Temp error , will retry: {e}")
+        channel.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
+    
 connected = False # tracks whether successfully connected yet
 attempts = 0 # counts how many times tried
 
@@ -73,6 +86,12 @@ while not connected and attempts < 10: # try up to 10 times
         attempts += 1 # count this failed attempt
         print(f"RabbitMQ not ready yet, retrying... (attempt {attempts})") # log to see when it is  retrying
         time.sleep(5) # wait 5 seconds before trying again
+
+if not connected:
+    print("Could not connect after 10 attempts, exiting")
+    exit(1)# stop the script with a msg instead of just crashing
+
+
 
 channel=connection.channel() # the chanel is in the connection where i  actually send and recieve the messages
 
