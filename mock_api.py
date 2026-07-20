@@ -1,23 +1,27 @@
-from fastapi import FastAPI  # library used to build a simple web api 
-from pydantic import BaseModel # lets me define what format incoming requests must have 
-import random # used to generate made up tenant ids 
+from fastapi import FastAPI  
+from pydantic import BaseModel  
+import random 
+import hashlib # used to turn a device id into a repeatable number, so the same device always gets the same tenant 
 
-app= FastAPI()  ## create actual api application object , this is what uvicorn run 
+app= FastAPI()  
 
-class DeviceRequest(BaseModel): #defines what a incoming request looks like 
+class DeviceRequest(BaseModel): 
     device_id:str
 
 
-@app.post("/lookup") # this registers a new route,when a post request to lookup is sent , run the function below
+@app.post("/lookup")  
 def lookup_tenants(request: DeviceRequest):
 
-    tenants = random.randint(1,3) #decide if the device belongs to 1 2 or 3 tenants 
-    tenant_id = [f"tenant-{random.randint(1000,9999)}" for _ in range(tenants)] #list of fake tenant ids one for each number decided above 
+    device_seed = int(hashlib.sha256(request.device_id.encode()).hexdigest(),16)
+    #^ seed the random generator using the device id , so the device id always produces the same result
+    random_generator = random.Random(device_seed)
+
+    num_tenants = random_generator.randint(1,3)  
+    tenant_id = [f"tenant-{random_generator.randint(1000,9999)}" for _ in range(num_tenants)] 
 
 
 
     return{
-        "device_id": request.device_id, # send back the same device_id we were given, so the caller knows which device this result is for
-
-        "tenants":tenant_id #send back randomly generate list of tenanty ids
-    }
+        "device_id": request.device_id, 
+        "tenants":tenant_id 
+                }

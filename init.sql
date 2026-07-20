@@ -8,7 +8,7 @@ CREATE TABLE device_lookups (
     --the device_id  extracted
     tenant_ids JSONB NOT NULL,
     -- the list of tenant_ids, stored as a JSON colummn
-    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPZ  NOT NULL DEFAULT NOW()
     -- automatically records the date/time this row was inserted
     raw_payload JSONB
 );
