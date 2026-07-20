@@ -5,6 +5,10 @@ import hashlib # used to turn a device id into a repeatable number, so the same 
 
 app= FastAPI()  
 
+@app.get("/health")
+def health():
+    return {"status":"ok"}
+    
 class DeviceRequest(BaseModel): 
     device_id:str
 
