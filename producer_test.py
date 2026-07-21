@@ -23,8 +23,8 @@ message ={"message_id": str(uuid.uuid4().hex[:6]),
 channel.basic_publish( 
     exchange="", 
     routing_key="device_events", 
-    body=json.dumps(message)  
-
+    body=json.dumps(message)  ,
+    properties=pika.BasicProperties(delivery_mode=2)# marked as persistent so it survives a RabbitMq restart 
 )
 
 print("Sent:",message)  

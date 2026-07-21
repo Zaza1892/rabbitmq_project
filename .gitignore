@@ -5,3 +5,4 @@ __pycache__/
 venv/
 .idea/
 consumer_notes.py
+.env
