@@ -72,10 +72,12 @@ def handle_messages(channel,method,properties,body):
         print(f"Temp error , will retry: {e}")
         channel.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
     
-connected = False  
-attempts = 0  
 
-while not connected and attempts < 10: # 
+
+def main():
+ connected = False  
+ attempts = 0  
+ while not connected and attempts < 10: # 
     try:
         connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST)) # try to connect
         connected = True  
@@ -83,16 +85,20 @@ while not connected and attempts < 10: #
         attempts += 1  
         print(f"RabbitMQ not ready yet, retrying... (attempt {attempts})")  
         time.sleep(5)  
-if not connected:
+ if not connected:
     print("Could not connect after 10 attempts, exiting")
     exit(1) 
 
 
-channel=connection.channel()  
+ channel=connection.channel()  
 
-channel.queue_declare(queue="device_events",durable=True)  
+ channel.queue_declare(queue="device_events",durable=True)  
 
-channel.basic_consume(queue="device_events",on_message_callback=handle_messages)
+ channel.basic_consume(queue="device_events",on_message_callback=handle_messages)
 
-print("listening for messages on device events") 
-channel.start_consuming() 
+ print("listening for messages on device events") 
+ channel.start_consuming() 
+
+
+if __name__ == "__main__":
+    main()
