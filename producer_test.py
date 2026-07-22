@@ -3,31 +3,36 @@ import json #converts between json text and python data
 import uuid #generate random unique ids
 import argparse # able to accept command-line flags like "device-id"
 
-parser =argparse.ArgumentParser()
-parser.add_argument("--device-id",type=str,default=None,help="Fixed device_id  ")
-args = parser.parse_args()
+
+def main():
+ parser =argparse.ArgumentParser()
+ parser.add_argument("--device-id",type=str,default=None,help="Fixed device_id  ")
+ args = parser.parse_args()
 
 
-connection = pika.BlockingConnection(pika.ConnectionParameters(host="localhost")) #connect to rabbitmq on this machine 
-channel = connection.channel() #open chanel to send messages on 
+ connection = pika.BlockingConnection(pika.ConnectionParameters(host="localhost")) #connect to rabbitmq on this machine 
+ channel = connection.channel() #open chanel to send messages on 
 
-channel.queue_declare(queue="device_events",durable=True) # make sure queue exists and is same name as consumer.py
+ channel.queue_declare(queue="device_events",durable=True) # make sure queue exists and is same name as consumer.py
 
-message ={"message_id": str(uuid.uuid4().hex[:6]),  
+ message ={"message_id": str(uuid.uuid4().hex[:6]),  
           "device_id":args.device_id 
           if args.device_id
           else f"device-{uuid.uuid4().hex[:6]}"
           # use the --device-id value if one was given, otherwise generate a random one
           }
 
-channel.basic_publish( 
+ channel.basic_publish( 
     exchange="", 
     routing_key="device_events", 
     body=json.dumps(message)  ,
     properties=pika.BasicProperties(delivery_mode=2)# marked as persistent so it survives a RabbitMq restart 
-)
+ )
 
-print("Sent:",message)  
+ print("Sent:",message)  
 
 
-connection.close()  
+ connection.close()  
+
+ if __name__ == "__main__":
+  main()

@@ -16,19 +16,19 @@ DB_USER = os.getenv("DB_USER", "appuser")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "apppassword")
 
 def save_to_db(message_id, device_id, tenant_ids,raw_payload):
-    conn = psycopg2.connect(
+    with psycopg2.connect(
         host=DB_HOST,
         dbname=DB_NAME,
         user=DB_USER,
         password=DB_PASSWORD
-    )  
+    )  as conn:
+        with conn.cursor() as cur:
+      
 
-    cur = conn.cursor()  
-
-    cur.execute(
-        "INSERT INTO device_lookups (message_id, device_id, tenant_ids, created_at,raw_payload) VALUES (%s,%s, %s, %s, %s) ON CONFLICT (message_id) DO NOTHING",
-    #  if this message_id already exists in the table, skip it instead of throwing an error       
-      (message_id, device_id, json.dumps(tenant_ids), datetime.now(timezone.utc),json.dumps(raw_payload))
+         cur.execute(
+         "INSERT INTO device_lookups (message_id, device_id, tenant_ids, created_at,raw_payload) VALUES (%s,%s, %s, %s, %s) ON CONFLICT (message_id) DO NOTHING",
+          #  if this message_id already exists in the table, skip it instead of throwing an error       
+          (message_id, device_id, json.dumps(tenant_ids), datetime.now(timezone.utc),json.dumps(raw_payload))
         # ^ json.dumps converts our python list into a JSON string, which JSONB can store
     )
 
