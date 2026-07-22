@@ -1,3 +1,15 @@
+# docker-compose.yml
+#
+# Runs the full pipeline as 4 containers: RabbitMQ (message queue),
+# Postgres (storage), mock-api (fake tenant-lookup service), and
+# consumer (the actual listener/agent).
+#
+# Healthchecks ensure the consumer only starts once RabbitMQ, Postgres,
+# and mock-api are genuinely ready to accept connections, not just
+# "started" - this avoids startup-timing crashes.
+
+
+
 services:
   rabbitmq:
     image: rabbitmq:3.13-management

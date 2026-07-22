@@ -16,6 +16,18 @@ DB_USER = os.getenv("DB_USER", "appuser")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "apppassword")
 
 def save_to_db(message_id, device_id, tenant_ids,raw_payload):
+
+    """
+    Inserts one row into device_lookups. Uses ON CONFLICT DO NOTHING
+    so that redelivered messages (same message_id) don't create
+    duplicate rows.
+
+    Uses "with" (context managers) for both the connection and cursor,
+    so they're guaranteed to close automatically even if an error
+    happens partway through, instead of relying on manual .close() calls.
+    """
+
+
     with psycopg2.connect(
         host=DB_HOST,
         dbname=DB_NAME,
@@ -30,13 +42,26 @@ def save_to_db(message_id, device_id, tenant_ids,raw_payload):
           #  if this message_id already exists in the table, skip it instead of throwing an error       
           (message_id, device_id, json.dumps(tenant_ids), datetime.now(timezone.utc),json.dumps(raw_payload))
         # ^ json.dumps converts our python list into a JSON string, which JSONB can store
-    )
+     )
 
     conn.commit()  
-    cur.close()  
-    conn.close()  
+      
 
 def handle_messages(channel,method,properties,body):  
+
+ """
+    Runs once per message received from RabbitMQ.
+
+    Happy path: parses the payload, extracts device_id and message_id,
+    calls the tenant-lookup API, saves the result to Postgres, then acks.
+
+    Error handling: permanently broken messages (bad JSON, missing
+    fields) are rejected without requeue, since retrying won't fix them.
+    Everything else (API down, DB down, unexpected errors) is rejected
+    WITH requeue, since those failures might just be temporary.
+    """
+
+
  try: 
     
     payload=json.loads(body) 
@@ -75,6 +100,15 @@ def handle_messages(channel,method,properties,body):
 
 
 def main():
+ """
+    Connects to RabbitMQ (retrying up to 10 times if it's not ready yet),
+    then starts consuming messages from the device_events queue forever.
+
+    Wrapped in main() and guarded by "if __name__ == '__main__'" so this
+    file can be safely imported elsewhere (e.g. by pytest) without
+    actually triggering a real RabbitMQ connection as a side effect.
+    """
+
  connected = False  
  attempts = 0  
  while not connected and attempts < 10: # 

@@ -5,6 +5,16 @@ import argparse # able to accept command-line flags like "device-id"
 
 
 def main():
+ 
+ """
+    Publishes a single test message onto the "device_events" queue.
+
+    By default, both message_id and device_id are randomly generated.
+    Pass --device-id to send a fixed device_id instead, which is useful
+    for testing repeatable behavior (e.g. confirming the mock API
+    returns the same tenants for the same device every time).
+  """
+
  parser =argparse.ArgumentParser()
  parser.add_argument("--device-id",type=str,default=None,help="Fixed device_id  ")
  args = parser.parse_args()
@@ -34,5 +44,5 @@ def main():
 
  connection.close()  
 
- if __name__ == "__main__":
+if __name__ == "__main__":
   main()

@@ -1,3 +1,11 @@
+# Dockerfile.mockapi
+#
+# Builds the container for mock_api.py, the pretend tenant-lookup API
+# used for local testing and development. Standing in for a real
+# tenant-lookup service that either doesn't exist yet or isn't
+# accessible during development.
+
+
 FROM python:3.11-slim
 
 WORKDIR /app
