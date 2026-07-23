@@ -2,6 +2,7 @@ import json
 from unittest.mock import MagicMock,patch
 import consumer
 
+############################################################
 
 def test_handle_malformed_messages():
     test_chanel = MagicMock()
@@ -14,6 +15,7 @@ def test_handle_malformed_messages():
     mock_save.assert_not_called()
     test_chanel.basic_reject.assert_called_once_with(delivery_tag=1, requeue=False)
 
+############################################################
 
 def test_handle_messages_missing_device_id():
     test_chanel = MagicMock()
@@ -27,6 +29,8 @@ def test_handle_messages_missing_device_id():
     mock_save.assert_not_called()
     test_chanel.basic_reject.assert_called_once_with(delivery_tag=1, requeue=False)
 
+############################################################
+
 def test_api_call_fail():
     test_chanel = MagicMock()
     test_method = MagicMock(delivery_tag=1)
@@ -38,6 +42,7 @@ def test_api_call_fail():
     mock_save.assert_not_called()
     test_chanel.basic_reject.assert_called_once_with(delivery_tag=1, requeue=True)
 
+############################################################
 
 def test_db_insert_behaviour():
     with patch("consumer.psycopg2.connect") as test_connect:

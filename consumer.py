@@ -6,6 +6,7 @@ import psycopg2 # talks to postgres
 from datetime import datetime ,timezone # lets us record the current date/time
 import time 
 
+############################################################
 
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000/lookup") 
@@ -14,6 +15,8 @@ DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_NAME = os.getenv("DB_NAME", "device_lookups")
 DB_USER = os.getenv("DB_USER", "appuser")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "apppassword")
+
+############################################################
 
 def save_to_db(message_id, device_id, tenant_ids,raw_payload):
 
@@ -46,6 +49,7 @@ def save_to_db(message_id, device_id, tenant_ids,raw_payload):
 
     conn.commit()  
       
+############################################################
 
 def handle_messages(channel,method,properties,body):  
 
@@ -97,7 +101,7 @@ def handle_messages(channel,method,properties,body):
         print(f"Temp error , will retry: {e}")
         channel.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
     
-
+############################################################
 
 def main():
  """
@@ -136,3 +140,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+############################################################

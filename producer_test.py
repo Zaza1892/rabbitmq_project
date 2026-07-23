@@ -3,6 +3,7 @@ import json #converts between json text and python data
 import uuid #generate random unique ids
 import argparse # able to accept command-line flags like "device-id"
 
+############################################################
 
 def main():
  
@@ -46,3 +47,5 @@ def main():
 
 if __name__ == "__main__":
   main()
+
+############################################################

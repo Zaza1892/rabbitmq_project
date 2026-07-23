@@ -2,7 +2,9 @@ from fastapi.testclient import TestClient
 from mock_api import app
  
 client = TestClient(app)
- 
+
+############################################################
+
 def test_lookup_returns_tenants():
 
 
@@ -22,7 +24,7 @@ def test_lookup_returns_tenants():
     assert "tenants" in data
     assert data["device_id"] == "device-999"
 
-
+############################################################
  
 def test_tenants_is_a_list():
 
@@ -36,9 +38,7 @@ def test_tenants_is_a_list():
     data=response.json()
     assert isinstance(data["tenants"],list)
 
-
-
-
+############################################################
 
 def test_tenant_id_format():
 
@@ -55,6 +55,8 @@ def test_tenant_id_format():
         assert tenant_id.startswith("tenant-")
         assert tenant_id.split("tenant-")[1].isdigit()
 
+############################################################
+
 def test_missing_id():
 
     """
@@ -66,3 +68,4 @@ def test_missing_id():
     response=client.post("/lookup",json={})
     assert response.status_code ==422
     
+############################################################

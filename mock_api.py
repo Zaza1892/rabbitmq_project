@@ -3,8 +3,9 @@ from pydantic import BaseModel
 import random 
 import hashlib # used to turn a device id into a repeatable number, so the same device always gets the same tenant 
 
-app= FastAPI()  
+############################################################
 
+app= FastAPI()  
 @app.get("/health")
 def health():
 
@@ -19,6 +20,7 @@ def health():
 class DeviceRequest(BaseModel): 
     device_id:str
 
+############################################################
 
 @app.post("/lookup")  
 def lookup_tenants(request: DeviceRequest):
@@ -46,3 +48,5 @@ def lookup_tenants(request: DeviceRequest):
         "device_id": request.device_id, 
         "tenants":tenant_id 
                 }
+
+############################################################

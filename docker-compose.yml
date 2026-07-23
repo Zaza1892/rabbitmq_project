@@ -9,6 +9,7 @@
 # "started" - this avoids startup-timing crashes.
 
 
+############################################################
 
 services:
   rabbitmq:
@@ -23,6 +24,8 @@ services:
       timeout: 5s
       retries: 10
 
+############################################################
+
   mock-api:
     build:
       context: .
@@ -33,6 +36,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+############################################################
 
   postgres:
     image: postgres:16-alpine
@@ -48,6 +53,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+############################################################
 
   consumer:
     build:
@@ -70,3 +77,4 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
     env_file:
       - .env
+############################################################

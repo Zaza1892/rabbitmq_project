@@ -3,12 +3,14 @@ from pydantic import BaseModel # lets me define what format incoming requests mu
 import random # used to generate made up tenant ids 
 import hashlib # used to turn a device id into a repeatable number, so the same device always gets the same tenant 
 
+############################################################
 
 app= FastAPI()  ## create actual api application object , this is what uvicorn run 
 
 class DeviceRequest(BaseModel): #defines what a incoming request looks like 
     device_id:str
 
+############################################################
 
 @app.post("/lookup") # this registers a new route,when a post request to lookup is sent , run the function below
 def lookup_tenants(request: DeviceRequest):
@@ -23,3 +25,5 @@ def lookup_tenants(request: DeviceRequest):
 
         "tenants":tenant_id #send back randomly generate list of tenanty ids
     }
+
+############################################################

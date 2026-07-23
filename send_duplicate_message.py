@@ -10,6 +10,7 @@ by the ON CONFLICT DO NOTHING clause in consumer.py's save_to_db,
 instead of creating a duplicate row.
 """
 
+############################################################
 
 import pika
 import json
@@ -28,3 +29,5 @@ channel.basic_publish(
 
 print("Sent:", message)
 connection.close()
+
+############################################################
