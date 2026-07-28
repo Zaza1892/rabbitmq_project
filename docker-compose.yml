@@ -72,9 +72,9 @@ services:
       RABBITMQ_HOST: rabbitmq
       API_URL: http://mock-api:8000/lookup
       DB_HOST: postgres
-      DB_NAME: ${POSTGRES_DB}
-      DB_USER: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB:-device_lookups}
+      DB_USER: ${POSTGRES_USER:-appuser}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-apppassword}
     env_file:
       - .env
 ############################################################
