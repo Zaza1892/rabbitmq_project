@@ -65,6 +65,7 @@ def handle_messages(channel,method,properties,body):
     WITH requeue, since those failures might just be temporary.
     """
 
+############################################################
 
  try: 
     
@@ -74,6 +75,15 @@ def handle_messages(channel,method,properties,body):
     device_id=payload["device_id"]  
     message_id=payload["message_id"]  
 
+
+ except (json.JSONDecodeError, KeyError) as e:
+        #  message itself is bad JSON, or missing a required field , retrying won't ever fix this, so scrap it 
+        print(f"Bad message,: {e}. Body: {body}")
+        channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
+        return
+
+############################################################
+ try:
     response=requests.post(   
         API_URL,  
         json={"device_id": device_id},   
@@ -91,10 +101,7 @@ def handle_messages(channel,method,properties,body):
     channel.basic_ack(delivery_tag=method.delivery_tag)
 
 
- except (json.JSONDecodeError, KeyError) as e:
-        #  message itself is bad JSON, or missing a required field , retrying won't ever fix this, so scrap it 
-        print(f"Bad message,: {e}. Body: {body}")
-        channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
+ 
 
  except Exception as e:
         #  issues like API down, database down, unexpected errors , will requeue and let rabbitmq retry 
