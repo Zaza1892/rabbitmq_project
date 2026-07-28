@@ -29,6 +29,12 @@ A pub/sub pipeline that listens for device events on RabbitMQ, looks up which te
 
 ## Running it
 
+
+Before running docker compose, copy .env.example to .env:
+
+copy .env.example .env
+
+
 docker compose up --build -d
 
 This starts all 4 containers: RabbitMQ, Postgres, the mock API, and the consumer. Docker healthchecks ensure the consumer only starts once RabbitMQ, Postgres, and the mock API are all confirmed healthy.
