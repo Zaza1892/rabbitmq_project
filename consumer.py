@@ -66,6 +66,23 @@ def handle_messages(channel,method,properties,body):
     """
 
 ############################################################
+def test_handle_messages_missingfield_tenants():
+   
+ test_chanel = MagicMock()
+ test_method = MagicMock(delivery_tag=1)
+ test_body = json.dumps({"message_id":"msg-1","device_id":"device-1"}).encode()
+
+ with patch("consumer.requests.post") as mock_post,patch("consumer.save_to_db") as mock_save:
+    mock_post.return_value.raise_for_status.return_value = None
+    mock_post.return_value.json.return_value = {"device_id": "device-1"}
+
+    consumer.handle_messages(test_chanel,test_method,None,test_body)
+
+ mock_save.assert_not_called()
+ test_chanel.basic_reject.assert_called_once_with(delivery_tag=1,requeue=True)
+
+
+
 
  try: 
     
@@ -100,8 +117,6 @@ def handle_messages(channel,method,properties,body):
 
     channel.basic_ack(delivery_tag=method.delivery_tag)
 
-
- 
 
  except Exception as e:
         #  issues like API down, database down, unexpected errors , will requeue and let rabbitmq retry 
