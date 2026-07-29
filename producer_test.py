@@ -26,7 +26,7 @@ def main():
 
  channel.queue_declare(queue="device_events",durable=True) # make sure queue exists and is same name as consumer.py
 
- message ={"message_id": str(uuid.uuid4().hex[:6]),  
+ message ={"message_id": str(uuid.uuid4())  ,  
           "device_id":args.device_id 
           if args.device_id
           else f"device-{uuid.uuid4().hex[:6]}"
