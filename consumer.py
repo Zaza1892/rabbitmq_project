@@ -10,7 +10,7 @@ import time
 
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000/lookup") 
-
+MAX_RETRIES = 5
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_NAME = os.getenv("DB_NAME", "device_lookups")
 DB_USER = os.getenv("DB_USER", "appuser")
@@ -64,29 +64,15 @@ def handle_messages(channel,method,properties,body):
     Everything else (API down, DB down, unexpected errors) is rejected
     WITH requeue, since those failures might just be temporary.
     """
-
-############################################################
-def test_handle_messages_missingfield_tenants():
-   
- test_chanel = MagicMock()
- test_method = MagicMock(delivery_tag=1)
- test_body = json.dumps({"message_id":"msg-1","device_id":"device-1"}).encode()
-
- with patch("consumer.requests.post") as mock_post,patch("consumer.save_to_db") as mock_save:
-    mock_post.return_value.raise_for_status.return_value = None
-    mock_post.return_value.json.return_value = {"device_id": "device-1"}
-
-    consumer.handle_messages(test_chanel,test_method,None,test_body)
-
- mock_save.assert_not_called()
- test_chanel.basic_reject.assert_called_once_with(delivery_tag=1,requeue=True)
-
-
-
+###########################################################
 
  try: 
     
     payload=json.loads(body) 
+
+    retry_count = 0
+    if properties and properties.headers:
+        retry_count = properties.headers.get("x-retry-count", 0)
     print("Message received: ",payload)
 
     device_id=payload["device_id"]  
@@ -117,12 +103,31 @@ def test_handle_messages_missingfield_tenants():
 
     channel.basic_ack(delivery_tag=method.delivery_tag)
 
-
  except Exception as e:
         #  issues like API down, database down, unexpected errors , will requeue and let rabbitmq retry 
-        print(f"Temp error , will retry: {e}")
-        channel.basic_reject(delivery_tag=method.delivery_tag, requeue=True)
-    
+        if retry_count < MAX_RETRIES:
+             print(f"Temp error,retrying(attempt{retry_count + 1}/{MAX_RETRIES}):")
+             channel.basic_publish(
+               exchange="",
+               routing_key="device_events",
+                body=body,
+                properties=pika.BasicProperties(
+                 headers={"x-retry-count": retry_count + 1}                )
+
+              )
+             channel.basic_ack(delivery_tag=method.delivery_tag)
+
+        else:
+            print(f"max retries exceeded ,moving to dead letter queue: {e}" )
+            channel.basic_publish(
+                exchange="",
+                routing_key="device_events_dead",
+                body=body,
+                properties=properties,
+                
+            )
+            channel.basic_ack(delivery_tag=method.delivery_tag)
+
 ############################################################
 
 def main():
@@ -153,6 +158,7 @@ def main():
  channel=connection.channel()  
 
  channel.queue_declare(queue="device_events",durable=True)  
+ channel.queue_declare(queue="device_events_dead",durable=True)
 
  channel.basic_consume(queue="device_events",on_message_callback=handle_messages)
 
