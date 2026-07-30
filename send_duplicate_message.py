@@ -24,7 +24,8 @@ message = {"message_id": "duplicate-test-001", "device_id": "device-dup-test"}
 channel.basic_publish(
     exchange="",
     routing_key="device_events",
-    body=json.dumps(message)
+    body=json.dumps(message),
+    properties=pika.BasicProperties(delivery_mode=2)
 )
 
 print("Sent:", message)
