@@ -5,6 +5,8 @@ import os
 import psycopg2 # talks to postgres
 from datetime import datetime ,timezone # lets us record the current date/time
 import time 
+from contextlib import closing 
+
 
 ############################################################
 
@@ -31,16 +33,15 @@ def save_to_db(message_id, device_id, tenant_ids,raw_payload):
     """
 
 
-    with psycopg2.connect(
+    with closing(psycopg2.connect(
         host=DB_HOST,
         dbname=DB_NAME,
         user=DB_USER,
         password=DB_PASSWORD
-    )  as conn:
-        with conn.cursor() as cur:
-      
-
-         cur.execute(
+    ))  as conn:
+         with conn:
+          with conn.cursor() as cur:
+           cur.execute(
          "INSERT INTO device_lookups (message_id, device_id, tenant_ids, created_at,raw_payload) VALUES (%s,%s, %s, %s, %s) ON CONFLICT (message_id) DO NOTHING",
           #  if this message_id already exists in the table, skip it instead of throwing an error       
           (message_id, device_id, json.dumps(tenant_ids), datetime.now(timezone.utc),json.dumps(raw_payload))
