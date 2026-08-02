@@ -46,11 +46,17 @@ def test_api_call_fail():
 ############################################################
 
 def test_db_insert_behaviour():
-    with patch("consumer.psycopg2.connect") as test_connect:
+    with patch("consumer.psycopg2.connect") as test_connect , patch("consumer.closing") as test_closing:
         test_cursor=MagicMock()
-        test_connect.return_value.__enter__.return_value.cursor.return_value.__enter__.return_value = test_cursor
+        test_conn=MagicMock()
 
-        consumer.save_to_db("msg-1","device-1",["tenant-1234"],{"message_id": "msg-1", "device_id": "device-1"})
+        test_closing.return_value.__enter__.return_value = test_conn
+        test_conn.__enter__.return_value = test_conn
+        test_conn.cursor.return_value.__enter__.return_value = test_cursor
+
+        consumer.save_to_db("msg-1", "device-1", ["tenant-1234"], {"message_id": "msg-1", "device_id": "device-1"})
+
+
         executed_sql = test_cursor.execute.call_args[0][0]
         assert "ON CONFLICT" in executed_sql
 ############################################################

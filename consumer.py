@@ -1,14 +1,13 @@
-import pika # talks to rabbitmq
-import json # converts json text and python data 
-import requests # make http calls to the mock api
+import pika 
+import json  
+import requests 
 import os
-import psycopg2 # talks to postgres
-from datetime import datetime ,timezone # lets us record the current date/time
+import psycopg2 
+from datetime import datetime ,timezone  
 import time 
 from contextlib import closing 
 
 
-############################################################
 
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000/lookup") 
@@ -18,7 +17,6 @@ DB_NAME = os.getenv("DB_NAME", "device_lookups")
 DB_USER = os.getenv("DB_USER", "appuser")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "apppassword")
 
-############################################################
 
 def save_to_db(message_id, device_id, tenant_ids,raw_payload):
 
@@ -27,11 +25,10 @@ def save_to_db(message_id, device_id, tenant_ids,raw_payload):
     so that redelivered messages (same message_id) don't create
     duplicate rows.
 
-    Uses "with" (context managers) for both the connection and cursor,
-    so they're guaranteed to close automatically even if an error
-    happens partway through, instead of relying on manual .close() calls.
-    """
-
+    contextlib.closing guarantees the connection is genuinely closed
+    once this function finishes, since psycopg2's own connection
+    context manager only handles commit/rollback, not closing.
+     """
 
     with closing(psycopg2.connect(
         host=DB_HOST,
@@ -43,14 +40,11 @@ def save_to_db(message_id, device_id, tenant_ids,raw_payload):
           with conn.cursor() as cur:
            cur.execute(
          "INSERT INTO device_lookups (message_id, device_id, tenant_ids, created_at,raw_payload) VALUES (%s,%s, %s, %s, %s) ON CONFLICT (message_id) DO NOTHING",
-          #  if this message_id already exists in the table, skip it instead of throwing an error       
-          (message_id, device_id, json.dumps(tenant_ids), datetime.now(timezone.utc),json.dumps(raw_payload))
-        # ^ json.dumps converts our python list into a JSON string, which JSONB can store
-     )
+           (message_id, device_id, json.dumps(tenant_ids), datetime.now(timezone.utc),json.dumps(raw_payload))
+      )
 
-    conn.commit()  
       
-############################################################
+ 
 
 def handle_messages(channel,method,properties,body):  
 
@@ -65,8 +59,7 @@ def handle_messages(channel,method,properties,body):
     Everything else (API down, DB down, unexpected errors) is rejected
     WITH requeue, since those failures might just be temporary.
     """
-###########################################################
-
+ 
  try: 
     
     payload=json.loads(body) 
@@ -86,12 +79,12 @@ def handle_messages(channel,method,properties,body):
         channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
         return
 
-############################################################
+ 
  try:
     response=requests.post(   
         API_URL,  
         json={"device_id": device_id},   
-        timeout=5 # set a time so that it does not hang forever
+        timeout=5  
     )
     response.raise_for_status() 
 
@@ -105,7 +98,8 @@ def handle_messages(channel,method,properties,body):
     channel.basic_ack(delivery_tag=method.delivery_tag)
 
  except Exception as e:
-        #  issues like API down, database down, unexpected errors , will requeue and let rabbitmq retry 
+# covers API failures, bad/unexpected API responses, database issues, or any other unexpected error
+# the original RabbitMQ message was fine, so this is retried rather than dropped
         if retry_count < MAX_RETRIES:
              print(f"Temp error,retrying(attempt{retry_count + 1}/{MAX_RETRIES}):")
              channel.basic_publish(
@@ -119,6 +113,7 @@ def handle_messages(channel,method,properties,body):
              channel.basic_ack(delivery_tag=method.delivery_tag)
 
         else:
+            # retries exhausted, move it to the dead-letter queue instead of retrying forever
             print(f"max retries exceeded ,moving to dead letter queue: {e}" )
             channel.basic_publish(
                 exchange="",
@@ -129,8 +124,7 @@ def handle_messages(channel,method,properties,body):
             )
             channel.basic_ack(delivery_tag=method.delivery_tag)
 
-############################################################
-
+ 
 def main():
  """
     Connects to RabbitMQ (retrying up to 10 times if it's not ready yet),
@@ -145,7 +139,7 @@ def main():
  attempts = 0  
  while not connected and attempts < 10: # 
     try:
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST)) # try to connect
+        connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST)) 
         connected = True  
     except pika.exceptions.AMQPConnectionError:  
         attempts += 1  
@@ -170,4 +164,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-############################################################
+ 

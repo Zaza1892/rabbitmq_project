@@ -30,21 +30,15 @@ A pub/sub pipeline that listens for device events on RabbitMQ, looks up which te
 ## Running it
 
 
-Before running docker compose, copy .env.example to .env:
+Before running Docker Compose for the first time, copy the example environment file:
 
 copy .env.example .env
 
+Then start everything:
 
 docker compose up --build -d
 
 This starts all 4 containers: RabbitMQ, Postgres, the mock API, and the consumer. Docker healthchecks ensure the consumer only starts once RabbitMQ, Postgres, and the mock API are all confirmed healthy.
-
-Check all containers are up and healthy:
-
-docker ps
-
-You should see rabbitmq, postgres, and mock-api marked healthy, and consumer running.
-
 ## Sending a test message
 
 python producer_test.py
@@ -83,7 +77,7 @@ Password: apppassword
 
 pytest -s
 
-This runs test_mock_api.py, which verifies the mock API responds correctly and includes the expected fields.
+This runs the full test suite: test_mock_api.py (verifies the mock API's responses and validation behavior) and consumer_test.py (verifies message handling, error classification, retries, and database insert behavior). test_producer.py verifies generated message IDs are full length.
 
 ## Error handling behavior
 
@@ -95,10 +89,11 @@ Duplicate messages, meaning the same message_id delivered more than once, are si
 
 ## Known limitations and things not yet implemented
 
+
 Postgres data does not currently persist across docker compose down, since no volume is configured for the database yet.
 
-Database credentials and ports are currently hard-coded in docker-compose.yml. This is fine for local development, but should move to a .env file before any shared or production use.
+Database credentials are stored in a local .env file, which is not committed to version control. A .env.example file with placeholder values is included so the shape of the required settings is visible; copy it to .env before running the project.
 
-Database connections in consumer.py are opened per message rather than pooled. This is acceptable at low volume, but worth revisiting for higher throughput.
+Database connections in consumer.py open a fresh connection per message rather than using a pooled connection. This is acceptable at low volume, but worth revisiting for higher throughput.
 
 The tenant-lookup API is currently mocked. Swap the API_URL environment variable in docker-compose.yml to point at the real API once it's available.
