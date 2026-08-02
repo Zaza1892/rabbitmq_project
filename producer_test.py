@@ -1,10 +1,9 @@
-import pika #talks to RabbitMQ
-import json #converts between json text and python data 
-import uuid #generate random unique ids
-import argparse # able to accept command-line flags like "device-id"
+import pika 
+import json  
+import uuid  
+import argparse  
 
-############################################################
-
+ 
 def main():
  
  """
@@ -21,17 +20,16 @@ def main():
  args = parser.parse_args()
 
 
- connection = pika.BlockingConnection(pika.ConnectionParameters(host="localhost")) #connect to rabbitmq on this machine 
- channel = connection.channel() #open chanel to send messages on 
+ connection = pika.BlockingConnection(pika.ConnectionParameters(host="localhost"))  
+ channel = connection.channel() 
 
- channel.queue_declare(queue="device_events",durable=True) # make sure queue exists and is same name as consumer.py
+ channel.queue_declare(queue="device_events",durable=True) 
 
  message ={"message_id": str(uuid.uuid4())  ,  
           "device_id":args.device_id 
           if args.device_id
           else f"device-{uuid.uuid4().hex[:6]}"
-          # use the --device-id value if one was given, otherwise generate a random one
-          }
+           }
 
  channel.basic_publish( 
     exchange="", 
@@ -48,4 +46,4 @@ def main():
 if __name__ == "__main__":
   main()
 
-############################################################
+ 
