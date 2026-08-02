@@ -1,28 +1,28 @@
-from fastapi import FastAPI  
-from pydantic import BaseModel  
-import random 
-import hashlib 
+from fastapi import FastAPI
+from pydantic import BaseModel
+import random
+import hashlib
+
+app = FastAPI()
 
 
-app= FastAPI()  
 @app.get("/health")
 def health():
-
     """
     Basic health check endpoint. Used by Docker's healthcheck to
     confirm this service is actually up and responding, not just
     that the container has started.
     """
 
-    return {"status":"ok"}
-    
-class DeviceRequest(BaseModel): 
-    device_id:str
+    return {"status": "ok"}
 
 
-@app.post("/lookup")  
+class DeviceRequest(BaseModel):
+    device_id: str
+
+
+@app.post("/lookup")
 def lookup_tenants(request: DeviceRequest):
-
     """
     Mock tenant-lookup endpoint. Given a device_id, returns a made-up
     list of tenant_ids standing in for a real lookup service.
@@ -32,17 +32,12 @@ def lookup_tenants(request: DeviceRequest):
     device_id itself, rather than using Python's global random state.
     """
 
+    device_seed = int(hashlib.sha256(request.device_id.encode()).hexdigest(), 16)
+    random_generator = random.Random(device_seed)
 
-    device_seed = int(hashlib.sha256(request.device_id.encode()).hexdigest(),16)
-    random_generator = random.Random(  device_seed)
+    num_tenants = random_generator.randint(1, 3)
+    tenant_id = [
+        f"tenant-{random_generator.randint(1000,9999)}" for _ in range(num_tenants)
+    ]
 
-    num_tenants = random_generator.randint(1,3)  
-    tenant_id = [f"tenant-{random_generator.randint(1000,9999)}" for _ in range(num_tenants)] 
-
-
-
-    return{
-        "device_id": request.device_id, 
-        "tenants":tenant_id 
-                }
-
+    return {"device_id": request.device_id, "tenants": tenant_id}
