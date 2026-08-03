@@ -7,6 +7,9 @@ from datetime import datetime, timezone
 import time
 from contextlib import closing
 
+AI_API_URL = os.getenv("AI_API_URL", "http://192.168.1.99:8888/v1/chat/completions")
+
+
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000/lookup")
 MAX_RETRIES = 5
@@ -16,7 +19,7 @@ DB_USER = os.getenv("DB_USER", "appuser")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "apppassword")
 
 
-def save_to_db(message_id, device_id, tenant_ids, raw_payload):
+def save_to_db(message_id, device_id, tenant_ids, raw_payload, ai_analysis):
     """
     Inserts one row into device_lookups. Uses ON CONFLICT DO NOTHING
     so that redelivered messages (same message_id) don't create
@@ -35,15 +38,42 @@ def save_to_db(message_id, device_id, tenant_ids, raw_payload):
         with conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "INSERT INTO device_lookups (message_id, device_id, tenant_ids, created_at,raw_payload) VALUES (%s,%s, %s, %s, %s) ON CONFLICT (message_id) DO NOTHING",
+                    "INSERT INTO device_lookups (message_id, device_id, tenant_ids, created_at,raw_payload, ai_analysis) VALUES (%s,%s,%s, %s, %s, %s) ON CONFLICT (message_id) DO NOTHING",
                     (
                         message_id,
                         device_id,
                         json.dumps(tenant_ids),
                         datetime.now(timezone.utc),
                         json.dumps(raw_payload),
+                        ai_analysis,
                     ),
                 )
+
+
+def analyzeContent(device_id, tenant_ids, raw_payload):
+    prompt = (
+        f"A device event was just processed. Device ID: {device_id}."
+        f"Tenants found: {tenant_ids}. Raw payload: {raw_payload}."
+        f"Does anything here look unusual, missing, or potentially broken?"
+        f"Answer briefly in plain english."
+    )
+
+    try:
+        response = requests.post(
+            AI_API_URL,
+            json={
+                "model": "gemma-4",
+                "messages": [{"role": "user", "content": prompt}],
+            },
+            timeout=10,
+        )
+        response.raise_for_status()
+        result = response.json()
+        return result["choices"][0]["message"]["content"]
+
+    except Exception as e:
+        print(f"AI analysis failed, continuing without it :{e}")
+        return None
 
 
 def handle_messages(channel, method, properties, body):
@@ -83,9 +113,13 @@ def handle_messages(channel, method, properties, body):
 
         result = response.json()
         tenant_ids = result["tenants"]
-        print("Tenant lookup result:", result)  #
+        print("Tenant lookup result:", result)
 
-        save_to_db(message_id, device_id, tenant_ids, payload)
+        ai_analysis = analyzeContent(device_id, tenant_ids, payload)
+        if ai_analysis:
+            print("AI analysis:", ai_analysis)
+
+        save_to_db(message_id, device_id, tenant_ids, payload, ai_analysis)
         print("Saved to database.")
 
         channel.basic_ack(delivery_tag=method.delivery_tag)

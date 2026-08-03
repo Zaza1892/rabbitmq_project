@@ -19,4 +19,5 @@ CREATE TABLE device_lookups (
      tenant_ids JSONB NOT NULL,
      created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
      raw_payload JSONB
+     ai_analysis TEXT
 );
