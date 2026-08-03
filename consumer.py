@@ -5,7 +5,7 @@ import os
 import psycopg2
 from datetime import datetime, timezone
 import time
-from contextlib import closing
+from psycopg2 import pool
 
 AI_API_URL = os.getenv("AI_API_URL", "http://192.168.1.99:8888/v1/chat/completions")
 
@@ -17,24 +17,33 @@ DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_NAME = os.getenv("DB_NAME", "device_lookups")
 DB_USER = os.getenv("DB_USER", "appuser")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "apppassword")
+db_pool = None
+
+
+def get_db_pool():
+
+    global db_pool
+    if db_pool is None:
+        db_pool = psycopg2.pool.SimpleConnectionPool(
+            1, 10, host=DB_HOST, dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD
+        )
+    return db_pool
 
 
 def save_to_db(message_id, device_id, tenant_ids, raw_payload, ai_analysis):
     """
-    Inserts one row into device_lookups. Uses ON CONFLICT DO NOTHING
-    so that redelivered messages (same message_id) don't create
-    duplicate rows.
+     Inserts one row into device_lookups. Uses ON CONFLICT DO NOTHING
+     so that redelivered messages (same message_id) don't create
+     duplicate rows.
 
-    contextlib.closing guarantees the connection is genuinely closed
-    once this function finishes, since psycopg2's own connection
-    context manager only handles commit/rollback, not closing.
+    Uses a connection pool instead of opening a brand new connection
+     every time, reusing a small set of already-open connections for
+     better performance at higher message volumes.
     """
 
-    with closing(
-        psycopg2.connect(
-            host=DB_HOST, dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD
-        )
-    ) as conn:
+    pool = get_db_pool()
+    conn = pool.getconn()
+    try:
         with conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -48,6 +57,9 @@ def save_to_db(message_id, device_id, tenant_ids, raw_payload, ai_analysis):
                         ai_analysis,
                     ),
                 )
+
+    finally:
+        pool.putconn(conn)
 
 
 def analyzeContent(device_id, tenant_ids, raw_payload):

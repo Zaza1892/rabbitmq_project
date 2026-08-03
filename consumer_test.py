@@ -54,13 +54,13 @@ def test_api_call_fail():
 
 
 def test_db_insert_behaviour():
-    with patch("consumer.psycopg2.connect") as test_connect, patch(
-        "consumer.closing"
-    ) as test_closing:
+    with patch("consumer.get_db_pool") as test_get_pool:
         test_cursor = MagicMock()
         test_conn = MagicMock()
+        test_pool = MagicMock()
 
-        test_closing.return_value.__enter__.return_value = test_conn
+        test_get_pool.return_value = test_pool
+        test_pool.getconn.return_value = test_conn
         test_conn.__enter__.return_value = test_conn
         test_conn.cursor.return_value.__enter__.return_value = test_cursor
 
@@ -69,6 +69,7 @@ def test_db_insert_behaviour():
             "device-1",
             ["tenant-1234"],
             {"message_id": "msg-1", "device_id": "device-1"},
+            "AI looks fine",
         )
 
         executed_sql = test_cursor.execute.call_args[0][0]
