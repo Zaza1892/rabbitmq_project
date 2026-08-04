@@ -66,6 +66,13 @@ def save_to_db(message_id, device_id, tenant_ids, raw_payload, ai_analysis):
 
 
 def analyzeContent(device_id, tenant_ids, raw_payload):
+    """
+    Sends details of a processed event to the internal Gemma-4 endpoint,
+    asking it to flag anything that looks unusual or broken. Retries up
+    to AI_MAX_RETRIES times with an increasing delay between attempts,
+    since a temporary AI outage shouldn't force the whole message to be
+    reprocessed from scratch.
+     """
     prompt = (
         f"A device event was just processed. Device ID: {device_id}."
         f"Tenants found: {tenant_ids}. Raw payload: {raw_payload}."
