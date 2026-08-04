@@ -20,6 +20,7 @@ A pub/sub pipeline that listens for device events on RabbitMQ, looks up which te
 - docker-compose.yml: runs RabbitMQ, Postgres, the mock API, and the consumer together, with healthchecks so the consumer waits until each dependency is genuinely ready
 - Dockerfile: builds the consumer container
 - Dockerfile.mockapi: builds the mock API container
+- review_ai_flags.py: a standalone script that queries Postgres for events where the AI's analysis suggests something looked unusual or broken, based on keyword matching
 
 ## Prerequisites
 
@@ -86,6 +87,17 @@ Permanently broken messages, such as invalid JSON or missing required fields, ar
 Temporary failures, such as the API or database being down, or other unexpected errors, are rejected with requeue, so RabbitMQ will redeliver the message for a later retry.
 
 Duplicate messages, meaning the same message_id delivered more than once, are silently skipped at the database level via a unique constraint, so redelivery from RabbitMQ won't create duplicate rows.
+
+## Reviewing AI-flagged events
+
+Every processed message is analyzed by an internal Gemma-4 endpoint, which comments on whether anything about the event looks unusual or incomplete. The result is stored in the ai_analysis column alongside each row.
+
+To see a summary of only the events the AI flagged as potentially broken or unusual:
+
+python review_ai_flags.py
+
+This checks each stored analysis for keywords like "broken", "missing", "suspicious", "issue", or "red flag", and prints the matching events along with the AI's reasoning, followed by a count of how many were flagged.
+
 
 ## Known limitations and things not yet implemented
 
