@@ -10,8 +10,6 @@ flag_key_words = ["broken", "red flag", "issue", "missing", "suspicious"]
 
 
 def main():
-
-
     """
     Connects to Postgres, reads every row with an AI analysis, and
     prints only the ones where the AI's response contains language

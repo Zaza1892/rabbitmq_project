@@ -72,6 +72,7 @@ services:
     environment:
       RABBITMQ_HOST: rabbitmq
       API_URL: http://mock-api:8000/lookup
+      AI_API_URL: http://192.168.1.99:8888/v1/chat/completions
       DB_HOST: postgres
       DB_NAME: ${POSTGRES_DB:-device_lookups}
       DB_USER: ${POSTGRES_USER:-appuser}

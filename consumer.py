@@ -7,6 +7,9 @@ from datetime import datetime, timezone
 import time
 from psycopg2 import pool
 
+AI_MAX_RETRIES = 5
+AI_BACKOFF_SECONDS = 1
+
 AI_API_URL = os.getenv("AI_API_URL", "http://192.168.1.99:8888/v1/chat/completions")
 
 
@@ -70,22 +73,29 @@ def analyzeContent(device_id, tenant_ids, raw_payload):
         f"Answer briefly in plain english."
     )
 
-    try:
-        response = requests.post(
-            AI_API_URL,
-            json={
-                "model": "gemma-4",
-                "messages": [{"role": "user", "content": prompt}],
-            },
-            timeout=10,
-        )
-        response.raise_for_status()
-        result = response.json()
-        return result["choices"][0]["message"]["content"]
+    for attempt in range(AI_MAX_RETRIES):
+        try:
 
-    except Exception as e:
-        print(f"AI analysis failed, continuing without it :{e}")
-        return None
+            response = requests.post(
+                AI_API_URL,
+                json={
+                    "model": "gemma-4",
+                    "messages": [{"role": "user", "content": prompt}],
+                },
+                timeout=10,
+            )
+            response.raise_for_status()
+            result = response.json()
+            return result["choices"][0]["message"]["content"]
+
+        except requests.RequestException as e:
+            if attempt == AI_MAX_RETRIES - 1:
+                print(f"AI analysis failed, continuing without it :{e}")
+                return None
+
+            delay = AI_BACKOFF_SECONDS * (2**attempt)
+            print(f"retrying in {delay} seconds...")
+            time.sleep(delay)
 
 
 def handle_messages(channel, method, properties, body):
