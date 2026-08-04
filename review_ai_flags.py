@@ -11,6 +11,13 @@ flag_key_words = ["broken", "red flag", "issue", "missing", "suspicious"]
 
 def main():
 
+
+    """
+    Connects to Postgres, reads every row with an AI analysis, and
+    prints only the ones where the AI's response contains language
+    suggesting something looked wrong, based on a simple keyword match.
+    """
+
     conn = psycopg2.connect(
         host=DB_HOST, dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD
     )

@@ -4,6 +4,11 @@ import review_ai_flags
 
 def test_only_flagged_rows_area_counted():
 
+    """
+    Confirms that rows without flag keywords in their ai_analysis are
+    correctly excluded, and only genuinely flagged rows are counted.
+    """
+   
     fake_row = [
         ("msg-1", "device-1", "Everything looks normal.", "2026-01-01"),
         ("msg-2", "device-2", "Looks broken and data missing.", "2026-01-02"),
