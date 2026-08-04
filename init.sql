@@ -18,6 +18,6 @@ CREATE TABLE device_lookups (
      device_id TEXT NOT NULL,
      tenant_ids JSONB NOT NULL,
      created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-     raw_payload JSONB
+     raw_payload JSONB,
      ai_analysis TEXT
 );

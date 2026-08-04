@@ -18,7 +18,7 @@ A pub/sub pipeline that listens for device events on RabbitMQ, looks up which te
 - test_mock_api.py: an automated test for the mock API
 - init.sql: creates the device_lookups table on first Postgres startup
 - docker-compose.yml: runs RabbitMQ, Postgres, the mock API, and the consumer together, with healthchecks so the consumer waits until each dependency is genuinely ready
-- Dockerfile: builds the consumer container
+- Dckerfile: builds the consumer container
 - Dockerfile.mockapi: builds the mock API container
 - review_ai_flags.py: a standalone script that queries Postgres for events where the AI's analysis suggests something looked unusual or broken, based on keyword matching
 
