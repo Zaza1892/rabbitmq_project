@@ -101,20 +101,26 @@ def test_handle_messages_missingfield_tenants():
 
 def test_analyze_content_success():
     with patch("consumer.requests.post") as mock_post:
-        mock_post.return_value.raise_for_status.return_value=None
-        mock_post.return_value.json.return_value={
-            "choices":[{"message":{"content":"Everything looks normal."}}]
+        mock_post.return_value.raise_for_status.return_value = None
+        mock_post.return_value.json.return_value = {
+            "choices": [{"message": {"content": "Everything looks normal."}}]
         }
 
-        result=consumer.analyzeContent("device-1",["tenant-1234"],{"message_id":"msg-1"})
+        result = consumer.analyzeContent(
+            "device-1", ["tenant-1234"], {"message_id": "msg-1"}
+        )
 
         assert result == "Everything looks normal."
 
 
 def test_analyze_content_retries_then_gives_up():
-    with patch("consumer.requests.post",side_effect=consumer.requests.RequestException("AI down")),patch("consumer.time.sleep") as mock__sleep:
-        result = consumer.analyzeContent("device-1",["tenant-1234"],{"message_id":"msg-1"})
+    with patch(
+        "consumer.requests.post",
+        side_effect=consumer.requests.RequestException("AI down"),
+    ), patch("consumer.time.sleep") as mock__sleep:
+        result = consumer.analyzeContent(
+            "device-1", ["tenant-1234"], {"message_id": "msg-1"}
+        )
 
-        assert result is None 
+        assert result is None
         assert mock__sleep.call_count == consumer.AI_MAX_RETRIES - 1
-        
