@@ -20,5 +20,4 @@ def test_only_flagged_rows_area_counted():
             test_cursor
         )
 
-
-review_ai_flags.main()
+        review_ai_flags.main(argv=[])

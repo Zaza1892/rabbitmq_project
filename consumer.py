@@ -72,7 +72,7 @@ def analyzeContent(device_id, tenant_ids, raw_payload):
     to AI_MAX_RETRIES times with an increasing delay between attempts,
     since a temporary AI outage shouldn't force the whole message to be
     reprocessed from scratch.
-     """
+    """
     prompt = (
         f"A device event was just processed. Device ID: {device_id}."
         f"Tenants found: {tenant_ids}. Raw payload: {raw_payload}."

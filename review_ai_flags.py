@@ -1,5 +1,6 @@
 import psycopg2
 import os
+import argparse
 
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_NAME = os.getenv("DB_NAME", "device_lookups")
@@ -9,22 +10,38 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "apppassword")
 flag_key_words = ["broken", "red flag", "issue", "missing", "suspicious"]
 
 
-def main():
+def main(argv=None):
     """
     Connects to Postgres, reads every row with an AI analysis, and
     prints only the ones where the AI's response contains language
     suggesting something looked wrong, based on a simple keyword match.
     """
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--hours",
+        type=int,
+        default=None,
+        help="only show flagged events from the last N hours",
+    )
+    args = parser.parse_args(argv)
+
     conn = psycopg2.connect(
         host=DB_HOST, dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD
     )
 
+    query = "SELECT message_id , device_id , ai_analysis , created_at FROM device_lookups WHERE ai_analysis IS NOT NULL"
+
+    params = []
+
+    if args.hours:
+        query += " AND created_at >= NOW() - INTERVAL '%s hours'"
+        params.append(args.hours)
+    query += " ORDER BY created_at DESC"
+
     with conn:
         with conn.cursor() as cur:
-            cur.execute(
-                "SELECT message_id , device_id , ai_analysis , created_at FROM device_lookups WHERE ai_analysis IS NOT NULL ORDER BY created_at DESC"
-            )
+            cur.execute(query, params)
             rows = cur.fetchall()
 
         flagged_count = 0
