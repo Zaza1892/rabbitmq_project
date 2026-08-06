@@ -8,7 +8,7 @@ message_id and device_id from the RabbitMQ payload, the tenant_ids
 returned by the tenant-lookup API, the full raw_payload as received,
 and a timestamp of when it was processed.
 
-message_id has a unique constraint (added separately via ALTER TABLE)
+message_id has a unique constraint (defined inline below)
 to prevent duplicate rows if RabbitMQ redelivers the same message.
 */
 
